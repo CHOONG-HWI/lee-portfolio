@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>이재명 대통령 포트폴리오 따라 샀다면?</title>
+
+  <!-- ✅ Google AdSense 스크립트 -->
+  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-xxxxxxx" crossorigin="anonymous"></script>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body {
+      font-family: 'Arial', sans-serif;
+      background-color: #f4f4f4;
+      padding: 20px;
+    }
+    .stock-card {
+      background: #fff;
+      padding: 16px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.05);
+    }
+    .stock-title {
+      font-size: 20px;
+      font-weight: bold;
+    }
+    canvas {
+      max-width: 100%;
+    }
+    #summary {
+      background: #fff;
+      padding: 20px;
+      border-radius: 8px;
+      margin-bottom: 30px;
+      box-shadow: 0 0 15px rgba(0,0,0,0.08);
+    }
+    #summary h2 {
+      margin-bottom: 10px;
+    }
+  </style>
+</head>
+<body>
+  <h1>📈 이재명 대통령 포트폴리오 따라 샀다면?</h1>
+
+  <!-- ✅ 광고 영역 -->
+  <div style="margin-bottom: 24px;">
+    <ins class="adsbygoogle"
+         style="display:block; text-align:center;"
+         data-ad-client="ca-pub-xxxxxxx"
+         data-ad-slot="xxxxxxx"
+         data-ad-format="auto"
+         data-full-width-responsive="true"></ins>
+    <script>(adsbygoogle = window.adsbygoogle || []).push({});</script>
+  </div>
+
+  <div id="summary"></div>
+  <div id="stocks"></div>
+
+  <!-- ✅ 자바스크립트 (생략 없이 포함됨) -->
+  <script>
+    const kodex200Purchases = [
+      { date: '2025-05-28', price: 35780, amount: 21000000 }
+    ];
+
+    const stockData = [
+      {
+        name: 'KODEX 코스닥150',
+        code: '229200',
+        avgPrice: 11790,
+        amount: 20000000
+      }
+    ];
+
+    async function fetchCurrentPrice(code) {
+      const res = await fetch(`https://api.allorigins.win/raw?url=https://finance.naver.com/item/main.nhn?code=${code}`);
+      const text = await res.text();
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(text, 'text/html');
+      const priceEl = doc.querySelector('.no_today .blind');
+      return priceEl ? parseInt(priceEl.textContent.replace(/,/g, '')) : null;
+    }
+
+    async function fetchPriceOnDate(code, targetDate) {
+      const formattedDate = `${targetDate.getFullYear()}.${String(targetDate.getMonth() + 1).padStart(2, '0')}.${String(targetDate.getDate()).padStart(2, '0')}`;
+      for (let page = 1; page <= 5; page++) {
+        const url = `https://api.allorigins.win/raw?url=https://finance.naver.com/item/sise_day.naver?code=${code}&page=${page}`;
+        const res = await fetch(url);
+        const text = await res.text();
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(text, 'text/html');
+        const rows = doc.querySelectorAll('table.type2 tr');
+
+        for (let row of rows) {
+          const tds = row.querySelectorAll('td');
+          if (tds.length >= 2) {
+            const dateText = tds[0].textContent.trim();
+            const priceText = tds[1].textContent.trim().replace(/,/g, '');
+            if (dateText === formattedDate) {
+              return parseInt(priceText);
+            }
+          }
+        }
+      }
+      return null;
+    }
+
+    async function renderStocks() {
+      const container = document.getElementById('stocks');
+      const summaryEl = document.getElementById('summary');
+      const today = new Date();
+
+      const currentDay = today.getDate();
+      const currentMonth = today.getMonth();
+      const currentYear = today.getFullYear();
+      const kodexCode = '069500';
+
+      if ((currentDay === 29) || (currentMonth === 2 && currentDay === 1)) {
+        const targetDate = new Date(currentYear, currentMonth - 1, 28);
+        const formatted = `${targetDate.getFullYear()}-${String(targetDate.getMonth() + 1).padStart(2, '0')}-28`;
+        const fetchedPrice = await fetchPriceOnDate(kodexCode, targetDate);
+        if (fetchedPrice) {
+          kodex200Purchases.push({
+            date: formatted,
+            price: fetchedPrice,
+            amount: 1000000
+          });
+        }
+      }
+
+      const currentPriceKodex = await fetchCurrentPrice(kodexCode);
+
+      let totalAmount = 0;
+      let totalShares = 0;
+      let totalInvest = 0;
+      let totalValue = 0;
+
+      for (const entry of kodex200Purchases) {
+        const purchaseDate = new Date(entry.date);
+        if (purchaseDate <= today) {
+          totalAmount += entry.amount;
+          totalShares += entry.amount / entry.price;
+        }
+      }
+
+      const valuation = totalShares * currentPriceKodex;
+      const profit = valuation - totalAmount;
+      const profitRate = totalAmount > 0 ? ((profit / totalAmount) * 100).toFixed(2) : '0.00';
+
+      totalInvest += totalAmount;
+      totalValue += valuation;
+
+      const card = document.createElement('div');
+      card.className = 'stock-card';
+      card.innerHTML = `
+        <div class="stock-title">KODEX 200 (정액분할매수)</div>
+        <div>총 투자금: ${totalAmount.toLocaleString()}원</div>
+        <div>보유 수량: ${totalShares.toFixed(2)}주</div>
+        <div>현재가: ${currentPriceKodex.toLocaleString()}원</div>
+        <div>수익률: <strong>${profitRate}%</strong></div>
+        <canvas id="chart-kodex" height="100"></canvas>
+      `;
+      container.appendChild(card);
+
+      new Chart(document.getElementById('chart-kodex'), {
+        type: 'bar',
+        data: {
+          labels: ['평균단가', '현재가'],
+          datasets: [{
+            label: 'KODEX 200',
+            data: [totalAmount / totalShares, currentPriceKodex],
+            backgroundColor: ['#4caf50', '#2196f3']
+          }]
+        },
+        options: {
+          scales: {
+            y: { beginAtZero: false }
+          }
+        }
+      });
+
+      for (const stock of stockData) {
+        const currentPrice = await fetchCurrentPrice(stock.code);
+        const quantity = stock.amount / stock.avgPrice;
+        const valuation = quantity * currentPrice;
+        const profit = valuation - stock.amount;
+        const profitRate = ((profit / stock.amount) * 100).toFixed(2);
+
+        totalInvest += stock.amount;
+        totalValue += valuation;
+
+        const card = document.createElement('div');
+        card.className = 'stock-card';
+        card.innerHTML = `
+          <div class="stock-title">${stock.name}</div>
+          <div>매수 단가: ${stock.avgPrice.toLocaleString()}원</div>
+          <div>보유 수량: ${quantity.toFixed(2)}주</div>
+          <div>현재가: ${currentPrice.toLocaleString()}원</div>
+          <div>수익률: <strong>${profitRate}%</strong></div>
+          <canvas id="chart-${stock.code}" height="100"></canvas>
+        `;
+        container.appendChild(card);
+
+        new Chart(document.getElementById(`chart-${stock.code}`), {
+          type: 'bar',
+          data: {
+            labels: ['매수가', '현재가'],
+            datasets: [{
+              label: stock.name,
+              data: [stock.avgPrice, currentPrice],
+              backgroundColor: ['#4caf50', '#2196f3']
+            }]
+          },
+          options: {
+            scales: {
+              y: { beginAtZero: false }
+            }
+          }
+        });
+      }
+
+      const totalProfit = totalValue - totalInvest;
+      const totalRate = totalInvest > 0 ? ((totalProfit / totalInvest) * 100).toFixed(2) : '0.00';
+      summaryEl.innerHTML = `
+        <h2>📊 전체 요약</h2>
+        <div>총 투자금: ${totalInvest.toLocaleString()}원</div>
+        <div>총 평가금액: ${totalValue.toLocaleString()}원</div>
+        <div>총 수익률: <strong>${totalRate}%</strong></div>
+      `;
+    }
+
+    renderStocks();
+  </script>
+</body>
+</html>
